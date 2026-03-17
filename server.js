@@ -16,9 +16,9 @@ app.use(express.json());
 
 // Mood to prompt mapping
 const moodPrompts = {
-  calm: "Generate one short supportive affirmation for someone feeling calm and wanting to maintain inner balance. Maximum 1-2 sentences. No markdown, no lists, no extra text.",
-  tired: "Generate one short supportive affirmation for someone feeling tired and needing gentle support. Maximum 1-2 sentences. No markdown, no lists, no extra text.",
-  energy: "Generate one short supportive affirmation for someone needing energy and confidence. Maximum 1-2 sentences. No markdown, no lists, no extra text."
+  calm: "Generate only one short supportive affirmation for someone feeling calm. Maximum 1-2 sentences. Return ONLY the affirmation text, no explanations or extra words.",
+  tired: "Generate only one short supportive affirmation for someone feeling tired. Maximum 1-2 sentences. Return ONLY the affirmation text, no explanations or extra words.",
+  energy: "Generate only one short supportive affirmation for someone needing energy. Maximum 1-2 sentences. Return ONLY the affirmation text, no explanations or extra words."
 };
 
 // Health endpoint
@@ -75,10 +75,23 @@ app.post('/api/affirmation', async (req, res) => {
     }
 
     const data = await response.json();
-    const affirmation = data.choices?.[0]?.message?.content?.trim();
+    let affirmation = data.choices?.[0]?.message?.content?.trim();
 
     if (!affirmation) {
       console.error('No affirmation in Groq response');
+      return res.status(500).json({
+        error: 'AI response invalid'
+      });
+    }
+
+    // Remove common prefixes and clean up the response
+    affirmation = affirmation
+      .replace(/^(Here's your affirmation:|Affirmation:|Your affirmation:)/i, '')
+      .replace(/^["']|["']$/g, '') // Remove quotes
+      .trim();
+
+    if (!affirmation) {
+      console.error('Empty affirmation after cleanup');
       return res.status(500).json({
         error: 'AI response invalid'
       });
