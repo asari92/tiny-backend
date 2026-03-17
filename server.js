@@ -14,8 +14,14 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 // Health endpoint
 app.get('/health', (req, res) => {
+  console.log('Health check requested');
   res.json({ ok: true });
 });
 
@@ -25,10 +31,12 @@ app.post('/api/affirmation', async (req, res) => {
     const { mood } = req.body;
 
     if (!mood || !['calm', 'tired', 'energy'].includes(mood)) {
+      console.log('Invalid mood received:', mood);
       return res.status(400).json({ error: 'Invalid mood. Use calm, tired, or energy.' });
     }
 
     if (!process.env.GROQ_API_KEY) {
+      console.error('GROQ_API_KEY not configured');
       return res.status(500).json({ error: 'GROQ_API_KEY is not configured.' });
     }
 
@@ -37,6 +45,10 @@ app.post('/api/affirmation', async (req, res) => {
       tired: "The user feels tired and needs gentle support.",
       energy: "The user needs energy and confidence."
     };
+
+    console.log('Received mood:', mood);
+    console.log('Using prompt:', moodPrompts[mood]);
+    console.log('Sending request to Groq...');
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -80,7 +92,12 @@ app.post('/api/affirmation', async (req, res) => {
       .replace(/<think>[\s\S]*?<\/think>/g, '')
       .trim();
 
+    console.log('AI raw text:', rawText);
+    console.log('AI cleaned text:', cleanedText);
+    console.log('Sending affirmation response:', cleanedText);
+
     if (!cleanedText) {
+      console.error('Empty AI response after cleaning');
       return res.status(500).json({ error: 'Empty AI response' });
     }
 
