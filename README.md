@@ -19,7 +19,7 @@ npm install
 2. Create `.env` file:
 ```bash
 cp .env.example .env
-# Edit .env and add your XAI_API_KEY
+# Edit .env and add your GROQ_API_KEY
 ```
 
 3. Start server:
@@ -31,7 +31,7 @@ Server will run on `http://localhost:3000`
 
 ## Environment Variables
 
-- `XAI_API_KEY` (required): Your xAI API key
+- `GROQ_API_KEY` (required): Your xAI API key
 - `PORT` (optional): Server port, defaults to 3000
 - `ALLOWED_ORIGIN` (optional): CORS allowed origin, defaults to *
 
@@ -73,7 +73,7 @@ curl -X POST http://localhost:3000/api/affirmation \
    - **Build Command**: `npm install`
    - **Start Command**: `node server.js`
    - **Environment Variables**:
-     - `XAI_API_KEY`: Your xAI API key
+     - `GROQ_API_KEY`: Your xAI API key
      - `ALLOWED_ORIGIN` (optional): Your mobile app's URL
 
 4. Deploy and get your service URL

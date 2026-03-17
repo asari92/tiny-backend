@@ -47,20 +47,20 @@ app.post('/api/affirmation', async (req, res) => {
     }
 
     // Check if API key is available
-    if (!process.env.XAI_API_KEY) {
-      console.warn('XAI_API_KEY not found, using fallback response');
+    if (!process.env.GROQ_API_KEY) {
+      console.warn('GROQ_API_KEY not found, using fallback response');
       return res.json({ text: fallbackResponses[mood] });
     }
 
     // Call xAI API
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.XAI_API_KEY}`,
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'grok-4.20-beta-latest-non-reasoning',
+        model: 'qwen/qwen3-32b',
         messages: [
           {
             role: 'user',
