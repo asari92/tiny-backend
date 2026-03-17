@@ -41,8 +41,8 @@ app.post('/api/affirmation', async (req, res) => {
 
     // Validate mood
     if (!mood || !['calm', 'tired', 'energy'].includes(mood)) {
-      return res.status(400).json({ 
-        error: 'Invalid mood. Must be one of: calm, tired, energy' 
+      return res.status(400).json({
+        error: 'Invalid mood. Must be one of: calm, tired, energy'
       });
     }
 
@@ -60,7 +60,7 @@ app.post('/api/affirmation', async (req, res) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'grok-beta',
+        model: 'grok-4.20-beta-latest-non-reasoning',
         messages: [
           {
             role: 'user',
@@ -73,8 +73,13 @@ app.post('/api/affirmation', async (req, res) => {
     });
 
     if (!response.ok) {
-      console.error('xAI API error:', response.status, response.statusText);
-      return res.json({ text: fallbackResponses[mood] });
+      const errorText = await response.text();
+      console.error('xAI API error:', response.status, response.statusText, errorText);
+      return res.status(500).json({
+        error: 'xAI request failed',
+        status: response.status,
+        details: errorText
+      });
     }
 
     const data = await response.json();
