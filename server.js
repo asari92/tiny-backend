@@ -21,14 +21,6 @@ const moodPrompts = {
   energy: "Generate one short supportive affirmation for someone needing energy and confidence. Maximum 1-2 sentences. No markdown, no lists, no extra text."
 };
 
-// Fallback responses
-const fallbackResponses = {
-  calm: "Stay grounded. Your calm is enough for today.",
-  tired: "Take this moment gently. Small steps still count.",
-  energy: "You already have momentum. Start with one confident step.",
-  default: "Take a breath. You are doing better than you think."
-};
-
 // Health endpoint
 app.get('/health', (req, res) => {
   res.json({ ok: true });
@@ -48,8 +40,10 @@ app.post('/api/affirmation', async (req, res) => {
 
     // Check if API key is available
     if (!process.env.GROQ_API_KEY) {
-      console.warn('GROQ_API_KEY not found, using fallback response');
-      return res.json({ text: fallbackResponses[mood] });
+      console.error('GROQ_API_KEY not found');
+      return res.status(500).json({
+        error: 'API key not configured'
+      });
     }
 
     // Call xAI API
@@ -74,11 +68,9 @@ app.post('/api/affirmation', async (req, res) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('xAI API error:', response.status, response.statusText, errorText);
+      console.error('Groq API error:', response.status, response.statusText, errorText);
       return res.status(500).json({
-        error: 'xAI request failed',
-        status: response.status,
-        details: errorText
+        error: 'AI request failed'
       });
     }
 
@@ -86,16 +78,19 @@ app.post('/api/affirmation', async (req, res) => {
     const affirmation = data.choices?.[0]?.message?.content?.trim();
 
     if (!affirmation) {
-      console.error('No affirmation in xAI response');
-      return res.json({ text: fallbackResponses[mood] });
+      console.error('No affirmation in Groq response');
+      return res.status(500).json({
+        error: 'AI response invalid'
+      });
     }
 
     res.json({ text: affirmation });
 
   } catch (error) {
     console.error('Error in /api/affirmation:', error);
-    const mood = req.body.mood || 'default';
-    res.json({ text: fallbackResponses[mood] });
+    res.status(500).json({
+      error: 'Server error'
+    });
   }
 });
 
