@@ -14,13 +14,6 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Mood to prompt mapping
-const moodPrompts = {
-  calm: "Generate only one short supportive affirmation for someone feeling calm. Maximum 1-2 sentences. Return ONLY the affirmation text, no explanations or extra words.",
-  tired: "Generate only one short supportive affirmation for someone feeling tired. Maximum 1-2 sentences. Return ONLY the affirmation text, no explanations or extra words.",
-  energy: "Generate only one short supportive affirmation for someone needing energy. Maximum 1-2 sentences. Return ONLY the affirmation text, no explanations or extra words."
-};
-
 // Health endpoint
 app.get('/health', (req, res) => {
   res.json({ ok: true });
@@ -31,38 +24,42 @@ app.post('/api/affirmation', async (req, res) => {
   try {
     const { mood } = req.body;
 
-    // Validate mood
     if (!mood || !['calm', 'tired', 'energy'].includes(mood)) {
-      return res.status(400).json({
-        error: 'Invalid mood. Must be one of: calm, tired, energy'
-      });
+      return res.status(400).json({ error: 'Invalid mood. Use calm, tired, or energy.' });
     }
 
-    // Check if API key is available
     if (!process.env.GROQ_API_KEY) {
-      console.error('GROQ_API_KEY not found');
-      return res.status(500).json({
-        error: 'API key not configured'
-      });
+      return res.status(500).json({ error: 'GROQ_API_KEY is not configured.' });
     }
 
-    // Call xAI API
+    const moodPrompts = {
+      calm: "The user feels calm and wants to stay balanced.",
+      tired: "The user feels tired and needs gentle support.",
+      energy: "The user needs energy and confidence."
+    };
+
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
       },
       body: JSON.stringify({
         model: 'qwen/qwen3-32b',
         messages: [
           {
+            role: 'system',
+            content: 'You generate one short supportive affirmation for a wellness mobile app. Return only plain text, maximum two short sentences, no markdown, no explanations.'
+          },
+          {
             role: 'user',
             content: moodPrompts[mood]
           }
         ],
-        max_tokens: 50,
-        temperature: 0.7
+        temperature: 0.7,
+        max_completion_tokens: 80,
+        reasoning_effort: 'none',
+        reasoning_format: 'hidden'
       })
     });
 
@@ -70,40 +67,28 @@ app.post('/api/affirmation', async (req, res) => {
       const errorText = await response.text();
       console.error('Groq API error:', response.status, response.statusText, errorText);
       return res.status(500).json({
-        error: 'AI request failed'
+        error: 'AI request failed',
+        status: response.status,
+        details: errorText
       });
     }
 
     const data = await response.json();
-    let affirmation = data.choices?.[0]?.message?.content?.trim();
 
-    if (!affirmation) {
-      console.error('No affirmation in Groq response');
-      return res.status(500).json({
-        error: 'AI response invalid'
-      });
-    }
-
-    // Remove common prefixes and clean up the response
-    affirmation = affirmation
-      .replace(/^(Here's your affirmation:|Affirmation:|Your affirmation:)/i, '')
-      .replace(/^["']|["']$/g, '') // Remove quotes
+    const rawText = data?.choices?.[0]?.message?.content?.trim() || '';
+    const cleanedText = rawText
+      .replace(/<think>[\s\S]*?<\/think>/g, '')
       .trim();
 
-    if (!affirmation) {
-      console.error('Empty affirmation after cleanup');
-      return res.status(500).json({
-        error: 'AI response invalid'
-      });
+    if (!cleanedText) {
+      return res.status(500).json({ error: 'Empty AI response' });
     }
 
-    res.json({ text: affirmation });
+    return res.json({ text: cleanedText });
 
   } catch (error) {
-    console.error('Error in /api/affirmation:', error);
-    res.status(500).json({
-      error: 'Server error'
-    });
+    console.error('Affirmation endpoint error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
