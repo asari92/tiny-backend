@@ -1,13 +1,13 @@
 # AI Mood Proxy Backend
 
-Minimal backend proxy for AI affirmation generation using xAI/Grok API.
+Minimal backend proxy for AI affirmation generation using the Groq API.
 
 ## What it does
 
 - Provides a simple proxy endpoint for generating mood-based affirmations
 - Keeps API keys secure on the backend
 - Returns short, supportive text responses based on user mood
-- Includes fallback responses when AI service is unavailable
+- Returns explicit error responses when AI service is unavailable
 
 ## Local Development
 
@@ -27,11 +27,11 @@ cp .env.example .env
 npm start
 ```
 
-Server will run on `http://localhost:3000`
+Server will run on `http://localhost:3000` by default.
 
 ## Environment Variables
 
-- `GROQ_API_KEY` (required): Your xAI API key
+- `GROQ_API_KEY` (required): Your Groq API key
 - `PORT` (optional): Server port, defaults to 3000
 - `ALLOWED_ORIGIN` (optional): CORS allowed origin, defaults to *
 
@@ -58,6 +58,31 @@ Generate affirmation based on mood.
 { "text": "Stay grounded. Your calm is enough for today." }
 ```
 
+**Error responses:**
+```json
+{ "error": "Invalid mood. Use calm, tired, or energy." }
+```
+
+```json
+{ "error": "GROQ_API_KEY is not configured." }
+```
+
+```json
+{
+  "error": "AI request failed",
+  "status": 401,
+  "details": "..."
+}
+```
+
+```json
+{ "error": "Empty AI response" }
+```
+
+```json
+{ "error": "Internal server error" }
+```
+
 **Example curl:**
 ```bash
 curl -X POST http://localhost:3000/api/affirmation \
@@ -73,7 +98,7 @@ curl -X POST http://localhost:3000/api/affirmation \
    - **Build Command**: `npm install`
    - **Start Command**: `node server.js`
    - **Environment Variables**:
-     - `GROQ_API_KEY`: Your xAI API key
+     - `GROQ_API_KEY`: Your Groq API key
      - `ALLOWED_ORIGIN` (optional): Your mobile app's URL
 
 4. Deploy and get your service URL
@@ -85,8 +110,7 @@ curl -X POST http://localhost:3000/api/affirmation \
 - **tired**: User feels tired and needs gentle support  
 - **energy**: User needs energy and confidence
 
-### Fallback Responses
-- **calm**: "Stay grounded. Your calm is enough for today."
-- **tired**: "Take this moment gently. Small steps still count."
-- **energy**: "You already have momentum. Start with one confident step."
-- **default**: "Take a breath. You are doing better than you think."
+## Notes
+
+- This service does not include hardcoded fallback affirmations at the moment.
+- If the Groq request fails, the API returns an error response instead of a generated affirmation.
